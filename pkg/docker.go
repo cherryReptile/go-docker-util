@@ -13,23 +13,27 @@ import (
 )
 
 type Docker struct {
-	ContainerInfo
-	Client  *client.Client
-	Context context.Context
+	ContainerInfo ContainerInfo
+	Client        *client.Client
+	Context       context.Context
 }
 
 type ContainerInfo struct {
-	ID string
+	ID    string
+	Image string
 }
 
-func NewDocker() *Docker {
+func NewDocker(image string) *Docker {
 	return &Docker{
+		ContainerInfo: ContainerInfo{
+			Image: image,
+		},
 		Client:  &client.Client{},
 		Context: context.Background(),
 	}
 }
 
-func (d *Docker) Start() {
+func (d *Docker) Start(cmd, env []string, name string) {
 	var containerID string
 	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
@@ -38,7 +42,7 @@ func (d *Docker) Start() {
 	d.Client = cli
 	defer d.Client.Close()
 
-	reader, err := cli.ImagePull(d.Context, "docker.io/library/postgres:alpine", types.ImagePullOptions{})
+	reader, err := cli.ImagePull(d.Context, d.ContainerInfo.Image, types.ImagePullOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -46,9 +50,9 @@ func (d *Docker) Start() {
 		log.Fatal(err)
 	}
 
-	c := d.getByContainerName("pgsql")
+	c := d.getByContainerName(name)
 	if c.ID == "" {
-		resp, err := d.createContainer()
+		resp, err := d.createContainer(cmd, env, name)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -82,9 +86,11 @@ func (d *Docker) Start() {
 	}
 }
 
-func (d *Docker) StartAndRemoveContainer() {
-	d.Start()
-	d.Client.ContainerRemove(d.Context, d.ContainerInfo.ID, types.ContainerRemoveOptions{})
+func (d *Docker) StartAndRemoveContainer(cmd, env []string, name string) {
+	d.Start(cmd, env, name)
+	if err := d.Client.ContainerRemove(d.Context, d.ContainerInfo.ID, types.ContainerRemoveOptions{}); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func (d *Docker) getByContainerName(name string) types.Container {
@@ -103,14 +109,12 @@ func (d *Docker) getByContainerName(name string) types.Container {
 	return types.Container{}
 }
 
-func (d *Docker) createContainer() (container.CreateResponse, error) {
-	var env []string
-	env = append(env, "POSTGRES_DB=db", "POSTGRES_USER=db", "POSTGRES_PASSWORD=db")
+func (d *Docker) createContainer(cmd, env []string, name string) (container.CreateResponse, error) {
 	resp, err := d.Client.ContainerCreate(d.Context, &container.Config{
-		Image: "postgres:alpine",
-		Cmd:   []string{"postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"},
+		Image: d.ContainerInfo.Image,
+		Cmd:   cmd,
 		Env:   env,
-	}, nil, nil, nil, "pgsql")
+	}, nil, nil, nil, name)
 	if err != nil {
 		return resp, err
 	}
