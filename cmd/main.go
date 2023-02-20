@@ -7,10 +7,10 @@ import (
 
 func main() {
 	c := cli.NewCli()
-	docker := pkg.NewDocker(c.Image)
+	docker := pkg.NewDocker(c)
 	if !c.Remove {
-		docker.Start(c.Cmd, c.Env, c.Name)
+		docker.Start()
 	} else {
-		docker.StartAndRemoveContainer(c.Cmd, c.Env, c.Name)
+		docker.StartAndRemoveContainer()
 	}
 }

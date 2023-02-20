@@ -7,42 +7,37 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
+	"go-docker/cli"
 	"io"
 	"log"
 	"os"
 )
 
 type Docker struct {
-	ContainerInfo ContainerInfo
-	Client        *client.Client
-	Context       context.Context
+	CliInfo     *cli.Cli
+	ContainerID string
+	Client      *client.Client
+	Context     context.Context
 }
 
-type ContainerInfo struct {
-	ID    string
-	Image string
-}
-
-func NewDocker(image string) *Docker {
+func NewDocker(cli *cli.Cli) *Docker {
 	return &Docker{
-		ContainerInfo: ContainerInfo{
-			Image: image,
-		},
+		CliInfo: cli,
 		Client:  &client.Client{},
 		Context: context.Background(),
 	}
 }
 
-func (d *Docker) Start(cmd, env []string, name string) {
+func (d *Docker) Start() {
 	var containerID string
-	cli, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
+	dockerClient, err := client.NewClientWithOpts(client.FromEnv, client.WithAPIVersionNegotiation())
 	if err != nil {
 		log.Fatal(err)
 	}
-	d.Client = cli
+	d.Client = dockerClient
 	defer d.Client.Close()
 
-	reader, err := cli.ImagePull(d.Context, d.ContainerInfo.Image, types.ImagePullOptions{})
+	reader, err := dockerClient.ImagePull(d.Context, d.CliInfo.ConfigList.Image, types.ImagePullOptions{})
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -50,9 +45,9 @@ func (d *Docker) Start(cmd, env []string, name string) {
 		log.Fatal(err)
 	}
 
-	c := d.getByContainerName(name)
+	c := d.getByContainerName(d.CliInfo.Name)
 	if c.ID == "" {
-		resp, err := d.createContainer(cmd, env, name)
+		resp, err := d.createContainer()
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -61,7 +56,7 @@ func (d *Docker) Start(cmd, env []string, name string) {
 		containerID = c.ID
 	}
 
-	d.ContainerInfo.ID = containerID
+	d.ContainerID = containerID
 	if err = d.Client.ContainerStart(d.Context, containerID, types.ContainerStartOptions{}); err != nil {
 		log.Fatal(err)
 	}
@@ -86,9 +81,9 @@ func (d *Docker) Start(cmd, env []string, name string) {
 	}
 }
 
-func (d *Docker) StartAndRemoveContainer(cmd, env []string, name string) {
-	d.Start(cmd, env, name)
-	if err := d.Client.ContainerRemove(d.Context, d.ContainerInfo.ID, types.ContainerRemoveOptions{}); err != nil {
+func (d *Docker) StartAndRemoveContainer() {
+	d.Start()
+	if err := d.Client.ContainerRemove(d.Context, d.ContainerID, types.ContainerRemoveOptions{}); err != nil {
 		log.Fatal(err)
 	}
 }
@@ -109,12 +104,8 @@ func (d *Docker) getByContainerName(name string) types.Container {
 	return types.Container{}
 }
 
-func (d *Docker) createContainer(cmd, env []string, name string) (container.CreateResponse, error) {
-	resp, err := d.Client.ContainerCreate(d.Context, &container.Config{
-		Image: d.ContainerInfo.Image,
-		Cmd:   cmd,
-		Env:   env,
-	}, nil, nil, nil, name)
+func (d *Docker) createContainer() (container.CreateResponse, error) {
+	resp, err := d.Client.ContainerCreate(d.Context, d.CliInfo.ConfigList, nil, nil, nil, d.CliInfo.Name)
 	if err != nil {
 		return resp, err
 	}
