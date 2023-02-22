@@ -70,14 +70,16 @@ func (d *Docker) Start() {
 		log.Fatal(err)
 	}
 
-	statusCh, errCh := d.Client.ContainerWait(d.Context, containerID, container.WaitConditionNotRunning)
-	select {
-	case err = <-errCh:
-		if err != nil {
-			log.Fatal(err)
+	if d.CliInfo.Logs {
+		statusCh, errCh := d.Client.ContainerWait(d.Context, containerID, container.WaitConditionNotRunning)
+		select {
+		case err = <-errCh:
+			if err != nil {
+				log.Fatal(err)
+			}
+		case status := <-statusCh:
+			fmt.Println(fmt.Sprintf("exit status: %v", status.StatusCode))
 		}
-	case status := <-statusCh:
-		fmt.Println(fmt.Sprintf("exit status: %v", status.StatusCode))
 	}
 }
 
