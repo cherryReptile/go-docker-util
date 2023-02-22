@@ -74,48 +74,17 @@ func readConfig() *Cli {
 	fmt.Printf("Using config file: %s\n", viper.ConfigFileUsed())
 
 	if viper.IsSet("name") {
-		name := viper.Get("name")
-		validateConfig(name, "name", c)
+		c.Name = viper.GetString("name")
 	}
 	if viper.IsSet("image") {
-		image := viper.Get("image")
-		validateConfig(image, "image", c)
+		c.ConfigList.Image = viper.GetString("image")
 	}
 	if viper.IsSet("env") {
-		env := viper.Get("env")
-		validateConfig(env, "env", c)
+		c.ConfigList.Env = viper.GetStringSlice("env")
 	}
 	if viper.IsSet("cmd") {
-		cmd := viper.Get("cmd")
-		validateConfig(cmd, "cmd", c)
+		c.ConfigList.Cmd = viper.GetStringSlice("cmd")
 	}
 
 	return c
-}
-
-func validateConfig(item interface{}, itemName string, c *Cli) {
-	switch item.(type) {
-	case []interface{}:
-		iSlice := item.([]interface{})
-		for _, v := range iSlice {
-			switch v.(type) {
-			case string:
-				if itemName == "env" {
-					c.ConfigList.Env = append(c.ConfigList.Env, v.(string))
-				}
-				if itemName == "cmd" {
-					c.ConfigList.Cmd = append(c.ConfigList.Cmd, v.(string))
-				}
-			default:
-				log.Fatal(errors.New("unknown array type in config"))
-			}
-		}
-	case string:
-		if itemName == "image" {
-			c.ConfigList.Image = item.(string)
-		}
-		if itemName == "name" {
-			c.Name = item.(string)
-		}
-	}
 }
