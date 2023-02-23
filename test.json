@@ -1,0 +1,6 @@
+{
+  "name": "test",
+  "image": "postgres:alpine",
+  "env": ["POSTGRES_PASSWORD=db"],
+  "cmd": ["postgres", "-c", "log_statement=all", "-c", "log_destination=stderr"]
+}
