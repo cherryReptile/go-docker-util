@@ -1,7 +1,7 @@
 package main
 
 import (
-	"go-docker/cli"
+	"go-docker/bootstrap/cli"
 	"go-docker/internal/sys"
 	"go-docker/pkg"
 	"os"
@@ -12,7 +12,7 @@ func main() {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs)
 	go sys.HandleSignal(sigs)
-	c := cli.NewCli()
+	c := cli.NewConfigFromCli()
 	docker := pkg.NewDocker(c)
 	if !c.Remove {
 		docker.Start()

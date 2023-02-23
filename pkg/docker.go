@@ -7,20 +7,20 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/docker/pkg/stdcopy"
-	"go-docker/cli"
+	"go-docker/bootstrap/cli"
 	"io"
 	"log"
 	"os"
 )
 
 type Docker struct {
-	CliInfo     *cli.Cli
+	CliInfo     *cli.Config
 	ContainerID string
 	Client      *client.Client
 	Context     context.Context
 }
 
-func NewDocker(cli *cli.Cli) *Docker {
+func NewDocker(cli *cli.Config) *Docker {
 	return &Docker{
 		CliInfo: cli,
 		Client:  &client.Client{},
