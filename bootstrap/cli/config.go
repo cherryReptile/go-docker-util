@@ -14,6 +14,7 @@ type Config struct {
 	Remove     bool
 	Name       string
 	Logs       bool
+	Wait       bool
 	ConfigList *container.Config
 }
 
@@ -32,6 +33,7 @@ func NewConfigFromCli() *Config {
 
 	c.Remove = viper.GetBool("remove")
 	c.Logs = viper.GetBool("logs")
+	c.Wait = viper.GetBool("wait")
 
 	if viper.GetString("config") != "" {
 		setConfigFile(viper.GetString("config"))
@@ -58,6 +60,7 @@ func setFlags() {
 	flag.StringArrayP("environment", "e", nil, "env in key=value format")
 	flag.StringArrayP("command", "c", nil, "command that will be executed when container is starting")
 	flag.BoolP("logs", "l", false, "container logs")
+	flag.BoolP("wait", "w", false, "waiting while the container is running")
 	flag.StringP("config", "f", "", "config file for creating image and container")
 	flag.Parse()
 }

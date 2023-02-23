@@ -61,16 +61,18 @@ func (d *Docker) Start() {
 		log.Fatal(err)
 	}
 
-	out, err := d.Client.ContainerLogs(d.Context, containerID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Details: true})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if _, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out); err != nil {
-		log.Fatal(err)
-	}
-
 	if d.CliInfo.Logs {
+		out, err := d.Client.ContainerLogs(d.Context, containerID, types.ContainerLogsOptions{ShowStdout: true, ShowStderr: true, Follow: true, Details: true})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		if _, err = stdcopy.StdCopy(os.Stdout, os.Stderr, out); err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	if d.CliInfo.Wait {
 		statusCh, errCh := d.Client.ContainerWait(d.Context, containerID, container.WaitConditionNotRunning)
 		select {
 		case err = <-errCh:
